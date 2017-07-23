@@ -1,2 +1,3 @@
 # MindSet-Python
-NeuroSky MindSet Communications Protocol in Python 
+
+RF and Bluetooth HeadSets - NeuroSky MindSet Communications Protocol in Python
