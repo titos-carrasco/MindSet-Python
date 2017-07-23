@@ -8,18 +8,18 @@ import time
 
 class MindSetData:
     def __init__( self ):
-        self.poorSignalQuality = 200         # byte      (0 <=> 200) 0=OK; 200=sensor sin contacto con la piel
-        self.attentionESense = 0             # byte      (1 <=> 100) 0=no confiable
-        self.meditationESense = 0            # byte      (1 <=> 100) 0=no confiable
-        self.rawWave16Bit = 0                # int16     (-32768 <=> 32767)
-        self.delta = 0                       # uint32    (0 <=> 16777215)
-        self.theta = 0                       # uint32    (0 <=> 16777215)
-        self.lowAlpha = 0                    # uint32    (0 <=> 16777215)
-        self.highAlpha = 0                   # uint32    (0 <=> 16777215)
-        self.lowBeta = 0                     # uint32    (0 <=> 16777215)
-        self.highBeta = 0                    # uint32    (0 <=> 16777215)
-        self.lowGamma = 0                    # uint32    (0 <=> 16777215)
-        self.midGamma = 0                    # uint32    (0 <=> 16777215)
+        self.poorSignalQuality = 200         # byte      (0 <=> 200) 0=OK; 200=sensor sin contacto con la piel - 1 x seg
+        self.attentionESense = 0             # byte      (1 <=> 100) 0=no confiable - 1 x seg
+        self.meditationESense = 0            # byte      (1 <=> 100) 0=no confiable - 1 x seg
+        self.rawWave16Bit = 0                # int16     (-32768 <=> 32767) - 512 x seg
+        self.delta = 0                       # uint32    (0 <=> 16777215) - 1 x seg
+        self.theta = 0                       # uint32    (0 <=> 16777215) - 1 x seg
+        self.lowAlpha = 0                    # uint32    (0 <=> 16777215) - 1 x seg
+        self.highAlpha = 0                   # uint32    (0 <=> 16777215) - 1 x seg
+        self.lowBeta = 0                     # uint32    (0 <=> 16777215) - 1 x seg
+        self.highBeta = 0                    # uint32    (0 <=> 16777215) - 1 x seg
+        self.lowGamma = 0                    # uint32    (0 <=> 16777215) - 1 x seg
+        self.midGamma = 0                    # uint32    (0 <=> 16777215) - 1 x seg
 
 class MindSet():
     def __init__( self, port ):

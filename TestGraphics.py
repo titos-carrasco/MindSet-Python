@@ -18,12 +18,11 @@ def main():
     if( headSet.connect() ):
         msd = MindSetData()
 
-        npts = 30
-        attentionESense = [0]*npts
-        meditationESense = [0]*npts
-        rawWave16Bit = [0]*npts
-        delta = [0]*npts
-        theta = [0]*npts
+        attentionESense = [0]*10
+        meditationESense = [0]*10
+        rawWave16Bit = [0]*64
+        delta = [0]*10
+        theta = [0]*10
 
         fig = plt.figure( figsize=( 9, 6 ) )
         fig.subplots_adjust( wspace=0.3, hspace=0.3 )
@@ -48,7 +47,7 @@ def main():
         plt.grid( True )
         plt.title( "Raw Wave 16Bit", { "fontsize": 8 } )
         plt.tick_params(axis='both', which='major', labelsize=8)
-        liRaw, = plt.plot( rawWave16Bit, "b.-" )
+        liRaw, = plt.plot( rawWave16Bit, "b-" )
 
         plt.subplot( 2, 3, 4 )
         plt.ylim( 0, 16777215 )

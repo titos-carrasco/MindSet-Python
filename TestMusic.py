@@ -2,39 +2,31 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-import mido
+import rtmidi
 import time
 
-from rcr.mindwave.MindWave import *
+from rcr.mindset.MindSet import *
 
 def main():
-    # requiere instalar rtmidi: $ pip install python-rtmidi
-    mido.set_backend( 'mido.backends.rtmidi/UNIX_JACK' )
-    #mido.set_backend( 'mido.backends.rtmidi/LINUX_ALSA' )
-    #mido.set_backend( 'mido.backends.portmidi' )
-    midiOut = mido.open_output( 'MindWave', virtual = True, autoreset = True  )
+    midiOut = rtmidi.MidiOut()
+    midiOut.open_virtual_port("My virtual output")
 
-    mw = MindWave( "/dev/ttyUSB0", 1000, 0x0000 )
-    if( mw.connect() ):
-        mwd = MindWaveData()
+    headSet = MindSet( "/dev/rfcomm4" )
+    if( headSet.connect() ):
+        msd = MindSetData()
         while( True ):
-            mw.fillMindWaveData( mwd )
-            print(  mwd.poorSignalQuality, mwd.attentionESense, mwd.meditationESense )
-            nota1 = mwd.attentionESense
-            nota2 = mwd.meditationESense
+            headSet.getMindSetData( msd )
+            nota1 = msd.attentionESense
+            nota2 = msd.meditationESense
 
-            msg = mido.Message( 'note_on', channel = 0, note = nota1, velocity = 16 )
-            midiOut.send( msg )
-            msg = mido.Message( 'note_on', channel = 1, note = nota2, velocity = 16 )
-            midiOut.send( msg )
-            time.sleep( (mwd.rawWave16Bit & 0x0F )/100 )
-            msg = mido.Message( 'note_off', channel = 0, note = nota1, velocity = 16 )
-            midiOut.send( msg )
-            msg = mido.Message( 'note_off', channel = 1, note = nota2, velocity = 16 )
-            midiOut.send( msg )
+            midiOut.send_message( [ 0x90, nota1, 127 ] )  # on channel 0, nota, velocidad
+            midiOut.send_message( [ 0x91, nota2, 127 ] )  # on channel 1, nota, velocidad
+            time.sleep( (msd.rawWave16Bit & 0x0F )/100 )
+            midiOut.send_message( [ 0x80, nota1, 16 ] )  # off channel 0, nota, velocidad
+            midiOut.send_message( [ 0x81, nota2, 16 ] )  # off channel 1, nota, velocidad
 
             time.sleep( 0.01 )
-        mw.disconnect()
+        headSet.disconnect()
 
 if( __name__ == "__main__" ):
     main()
