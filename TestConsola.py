@@ -7,16 +7,22 @@ import time
 from rcr.mindset.MindSet import *
 
 def main():
-    headSet = MindSet( "/dev/rfcomm4" )
+    # Bluetooth version
+    #headSet = MindSet( "/dev/rfcomm4" )
+
+    # RF version: 0x0000=connect any, 0xXXYY=connect with  0xXXY
+    headSet = MindSet( "/dev/ttyUSB0", 0x0000 )
+
     if( headSet.connect() ):
         msd = MindSetData()
         t = time.time()
-        while( time.time() - t < 20 ):
+        while( time.time() - t < 20  ):
             headSet.getMindSetData( msd )
-            print( "%d %d %d %d %u %u %u %u %u %u %u %u\n" % (
+            print( "%d %d %d %d %d %u %u %u %u %u %u %u %u\n" % (
                         msd.poorSignalQuality,
                         msd.attentionESense,
                         msd.meditationESense,
+                        msd.blinkStrength,
                         msd.rawWave16Bit,
                         msd.delta,
                         msd.theta,
@@ -27,7 +33,7 @@ def main():
                         msd.lowGamma,
                         msd.midGamma
                     ), end= '' )
-            time.sleep( 0 )
+            time.sleep( 1.0 )
         headSet.disconnect()
 
 

@@ -14,7 +14,13 @@ from rcr.mindset.MindSet import *
 
 def main():
     #sys.setcheckinterval( 100 )
-    headSet = MindSet( "/dev/rfcomm4" )
+
+    # Bluetooth version
+    #headSet = MindSet( "/dev/rfcomm4" )
+
+    # RF version: 0x0000=connect any, 0xXXYY=connect with  0xXXYY
+    headSet = MindSet( "/dev/ttyUSB0", 0x0000 )
+
     if( headSet.connect() ):
         msd = MindSetData()
 
@@ -86,14 +92,15 @@ def main():
                 #liDelta.axes.autoscale_view()
                 liTheta.set_ydata( theta )
 
-                time.sleep( 0 )
+                time.sleep( 0.0001 )
                 fig.canvas.draw()
-                time.sleep( 0 )
+                time.sleep( 0.0001 )
 
             except Exception as e:
                 print( e )
                 break
         headSet.disconnect()
+
 
 if( __name__ == "__main__" ):
     main()

@@ -11,6 +11,7 @@ class MindSetData:
         self.poorSignalQuality = 200         # byte      (0 <=> 200) 0=OK; 200=sensor sin contacto con la piel - 1 x seg
         self.attentionESense = 0             # byte      (1 <=> 100) 0=no confiable - 1 x seg
         self.meditationESense = 0            # byte      (1 <=> 100) 0=no confiable - 1 x seg
+        self.blinkStrength = 0               # byte      (1 <=> 255)
         self.rawWave16Bit = 0                # int16     (-32768 <=> 32767) - 512 x seg
         self.delta = 0                       # uint32    (0 <=> 16777215) - 1 x seg
         self.theta = 0                       # uint32    (0 <=> 16777215) - 1 x seg
@@ -22,10 +23,11 @@ class MindSetData:
         self.midGamma = 0                    # uint32    (0 <=> 16777215) - 1 x seg
 
 class MindSet():
-    def __init__( self, port ):
+    def __init__( self, port, ghid=None ):
         self.port = port
         self.mutex = threading.Lock()
         self.connected = False
+        self.ghid = ghid
 
     def connect( self ):
         if( self.connected ):
@@ -35,7 +37,11 @@ class MindSet():
         # conecta a la puerta
         print( "MindSet Connect(): Intentando conectar a %s ..." % self.port, end='' )
         try:
-            self.conn = serial.Serial( self.port, baudrate=57600, bytesize=8,
+            if( self.ghid is not None ):
+                baudrate = 115200
+            else:
+                baudrate = 57600
+            self.conn = serial.Serial( self.port, baudrate=baudrate, bytesize=8,
                                        parity='N', stopbits=1, timeout=1 )
             self.conn.flushInput()
             self.conn.flushOutput()
@@ -45,6 +51,18 @@ class MindSet():
             print( "\n%s\n" % e, end='' )
             return False
         print( "OK\n", end='' )
+
+        # conexión al headset RF
+        if( self.ghid is not None ):
+            self.sendCommand( bytearray( [ 0xC1 ] ) )
+            time.sleep( 1 )
+            self.conn.flushInput()
+            if( self.ghid == 0x0000 ):
+                self.sendCommand( bytearray( [ 0xC2 ] ) )
+            else:
+                self.sendCommand( bytearray( [ 0xC0, ( self.ghid >> 8 ) & 0xFF, self.ghid & 0xFF ] ) )
+            # deberiamos esperar aqui la respuesta del dongle RF
+            # pass
 
         # inicializaciones requeridas
         self.msd = MindSetData()
@@ -60,7 +78,7 @@ class MindSet():
         self.tParser = threading.Thread( target=self._TParser, args=(), name="_TParser" )
         self.tParser.start()
         while ( not self.tRunning ):
-            time.sleep( 0 )
+            time.sleep( 0.0001 )
         print( "OK\n", end='' )
 
         return True
@@ -79,6 +97,10 @@ class MindSet():
             # desconecta
             print( "MindSet Disconnect(): Cerrando puerta ...", end='' )
             try:
+                if( self.ghid is not None ):
+                    self.sendCommand( bytearray( [ 0xC1 ] ) )
+                    time.sleep( 1 )
+                    self.conn.flushInput()
                 self.conn.close()
             except Exception as e:
                 print( "\n%s\n" % e, end='' )
@@ -100,6 +122,7 @@ class MindSet():
         msd.poorSignalQuality   = self.msd.poorSignalQuality
         msd.attentionESense     = self.msd.attentionESense
         msd.meditationESense    = self.msd.meditationESense
+        msd.blinkStrength       = self.msd.blinkStrength
         msd.rawWave16Bit        = self.msd.rawWave16Bit
         msd.delta               = self.msd.delta
         msd.theta               = self.msd.theta
@@ -111,7 +134,7 @@ class MindSet():
         msd.midGamma            = self.msd.midGamma
         self.mutex.release()
 
-    def sendCommand( cmd ):
+    def sendCommand( self, cmd ):
         # 0xC0: Connect RF Dongle with GHID [ 0xC0,  GHID_high, GHID_low ]
         # 0xC1: Disconnect RF Dongle
         # 0xC2: Connect with any RF Dongle
@@ -134,6 +157,7 @@ class MindSet():
         # 0x63: 57.6k baud
         try:
             self.conn.write( cmd )
+            self.conn.flushOutput()
         except Exception as e:
             print( "\n%s\n" % e, end='' )
 
@@ -163,7 +187,7 @@ class MindSet():
 
             # debe haber algo en el buffer
             if( len( self.queue ) == 0 ):
-                time.sleep( 0 )
+                time.sleep( 0.0001 )
                 continue
 
             # trabajamos con un automata
@@ -238,6 +262,8 @@ class MindSet():
                     self.msd.attentionESense = data[0]
                 elif( code == 0x05 ):  # meditation eSense (0 to 100) 40-60 => neutral, 0 => result is unreliable
                     self.msd.meditationESense = data[0]
+                elif( code == 0x16 ):  # blink strength (1 to 255)
+                    self.msd.blinkStrength = data[0]
                 elif( code == 0x80 ):  # raw wave value (-32768 to 32767) - big endian
                     n = ( data[0]<<8 ) + data[1]
                     if( n >= 32768 ):
@@ -256,7 +282,6 @@ class MindSet():
                 # elif( code == 0x03 ):  # heart rate (0 to 255)
                 # elif( code == 0x06 ):  # 8bit raw wave value (0 to 255)
                 # elif( code == 0x07 ):  # raw marker section start (0)
-                # elif( code == 0x16 ):  # blink strength (1 to 255)
                 # elif( code == 0x81 ):  # eeg power struct (legacy float)
                 # elif( code == 0x86 ):  # rrinterval (0 to 65535)
                 # elif( code == 0xd0 ):  # headset (RF) found and connected
