@@ -31,11 +31,11 @@ class MindSet():
 
     def connect( self ):
         if( self.connected ):
-            print( "MindSet Connect(): Ya se encuentra conectado a %s\n" % self.port, end='' )
+            print( 'MindSet Connect(): Ya se encuentra conectado a %s' % self.port, flush=True )
             return True
 
         # conecta a la puerta
-        print( "MindSet Connect(): Intentando conectar a %s ..." % self.port, end='' )
+        print( 'MindSet Connect(): Intentando conectar a %s ... ' % self.port, end='', flush=True )
         try:
             if( self.ghid is not None ):
                 baudrate = 115200
@@ -48,9 +48,9 @@ class MindSet():
             self.connected = True
         except Exception as e:
             self.conn = None
-            print( "\n%s\n" % e, end='' )
+            print( '\n%s' % e, flush=True )
             return False
-        print( "OK\n", end='' )
+        print( 'OK', flush=True )
 
         # conexión al headset RF
         if( self.ghid is not None ):
@@ -74,28 +74,28 @@ class MindSet():
         self.tRunning = False
 
         # levantamos la tarea de apoyo
-        print( "MindSet Connect(): Levantando tarea de lectura de datos ...", end='' )
-        self.tParser = threading.Thread( target=self._TParser, args=(), name="_TParser" )
+        print( 'MindSet Connect(): Levantando tarea de lectura de datos ... ', end='', flush=True )
+        self.tParser = threading.Thread( target=self._TParser, args=(), name='_TParser' )
         self.tParser.start()
         while ( not self.tRunning ):
             time.sleep( 0.0001 )
-        print( "OK\n", end='' )
+        print( 'OK', flush=True )
 
         return True
 
     def disconnect( self ):
         if( self.connected ):
             # detiene tarea
-            print( "MindSet Disconnect(): Deteniendo Tarea ...", end='' )
+            print( 'MindSet Disconnect(): Deteniendo Tarea ... ', end='', flush=True )
             self.tRunning = False
             self.tParser.join()
             self.tParser = None
             self.queue = None
             self.msd = None
-            print( "OK\n", end='' )
+            print( 'OK', flush=True )
 
             # desconecta
-            print( "MindSet Disconnect(): Cerrando puerta ...", end='' )
+            print( 'MindSet Disconnect(): Cerrando puerta ... ', end='',flush=True )
             try:
                 if( self.ghid is not None ):
                     self.sendCommand( bytearray( [ 0xC1 ] ) )
@@ -103,16 +103,16 @@ class MindSet():
                     self.conn.flushInput()
                 self.conn.close()
             except Exception as e:
-                print( "\n%s\n" % e, end='' )
+                print( '\n%s' % e, flush=True )
             self.connected = False
             self.conn = None
 
-            print( "OK\n", end='' )
-            print( "Bytes Leidos        : %d\n" % self.bytesLeidos, end='' )
-            print( "Bytes Perdidos      : %d\n" % self.bytesPerdidos, end='' )
-            print( "Paquetes Procesados : %d\n" % self.paquetesProcesados, end='')
-            print( "Paquetes Perdidos   : %d\n" % self.paquetesPerdidos, end='' )
-            print( "%s\n" % threading.enumerate(), end='' )
+            print( 'OK', flush=True )
+            print( 'Bytes Leidos        : %d' % self.bytesLeidos, flush=True )
+            print( 'Bytes Perdidos      : %d' % self.bytesPerdidos, flush=True )
+            print( 'Paquetes Procesados : %d' % self.paquetesProcesados, flush=True )
+            print( 'Paquetes Perdidos   : %d' % self.paquetesPerdidos, flush=True )
+            print( '%s' % threading.enumerate(), flush=True )
 
     def isConnected( self ):
         return self.connected
@@ -159,7 +159,7 @@ class MindSet():
             self.conn.write( cmd )
             self.conn.flushOutput()
         except Exception as e:
-            print( "\n%s\n" % e, end='' )
+            print( '\n%s' % e, flush=True )
 
     # privadas
     def _TParser( self, *args ):
@@ -180,9 +180,9 @@ class MindSet():
                         self.queue = self.queue + data
                     self.bytesLeidos = self.bytesLeidos + len( data )
                     if( len( self.queue ) > 512 ):
-                        print( "Advertencia: bytes pendientes %d\n" % len( self.queue ), end='' )
+                        print( 'Advertencia: bytes pendientes %d' % len( self.queue ), flush=True )
             except Exception as e:
-                #print( "%s\n" % e, end='' )
+                print( '\n%s' % e, flush=True )
                 pass
 
             # debe haber algo en el buffer
@@ -224,13 +224,13 @@ class MindSet():
                 if( b != suma ):
                     self.bytesPerdidos = self.bytesPerdidos + 1 + plength + 1
                     self.paquetesPerdidos = self.paquetesPerdidos + 1
-                    print( "_TParser(): ErrCheckSum\n", end='' )
+                    print( '_TParser(): ErrCheckSum', flush=True )
                 else:
                     self.paquetesProcesados = self.paquetesProcesados + 1
                     self._parsePayload( payload )
                 estado = 0
             else:
-                #print( "_TParser(): byte perdido\n", end='' )
+                #print( '_TParser(): byte perdido', flush=True )
                 self.bytesPerdidos = self.bytesPerdidos + 1
                 estado = 0
 
@@ -256,20 +256,20 @@ class MindSet():
             pos = pos + vlength
 
             if( exCodeLevel == 0 ):
-                if( code == 0x02 ):    # poor signal quality (0 to 255) 0=>OK; 200 => no skin contact
+                if( code == 0x02 ):    # uint8; poor signal quality (0 to 200) 0=>OK; 200 => no skin contact; 1xSeg
                     self.msd.poorSignalQuality = data[0]
-                elif( code == 0x04 ):  # attention eSense (0 to 100) 40-60 => neutral, 0 => result is unreliable
+                elif( code == 0x04 ):  # uint8; attention eSense (0 to 100) 40-60 => neutral, 0 => result is unreliable; 1xSeg
                     self.msd.attentionESense = data[0]
-                elif( code == 0x05 ):  # meditation eSense (0 to 100) 40-60 => neutral, 0 => result is unreliable
+                elif( code == 0x05 ):  # uint8; meditation eSense (0 to 100) 40-60 => neutral, 0 => result is unreliable; 1xSeg
                     self.msd.meditationESense = data[0]
-                elif( code == 0x16 ):  # blink strength (1 to 255)
+                elif( code == 0x16 ):  # uint8; blink strength (1 to 255)
                     self.msd.blinkStrength = data[0]
-                elif( code == 0x80 ):  # raw wave value (-32768 to 32767) - big endian
+                elif( code == 0x80 ):  # int16; raw wave value (-32768 to 32767); big endian; 512xSeg
                     n = ( data[0]<<8 ) + data[1]
                     if( n >= 32768 ):
                         n = n - 65536
                     self.msd.rawWave16Bit = n
-                elif( code == 0x83 ):  # asic eeg power struct (8, 3 bytes unsigned int big indian)
+                elif( code == 0x83 ):  # asic eeg power struct (8, 3 bytes unsigned int big indian); uint32 each; (0 <=> 16777215) - 1xSeg
                     self.msd.delta     = ( data[0] <<16 ) + ( data[1] <<8 ) + data[2]
                     self.msd.theta     = ( data[3] <<16 ) + ( data[4] <<8 ) + data[5]
                     self.msd.lowAlpha  = ( data[6] <<16 ) + ( data[7] <<8 ) + data[8]
@@ -290,7 +290,7 @@ class MindSet():
                 # elif( code == 0xd3 ):  # headset (RF) request denied
                 # elif( code == 0xd4 ):  # headset (RF) in standby/scan mode
                 else:
-                    print( "_parsePayload(): ExCodeLevel - %02x, Code: %02x, Data: [%s]\n" % ( exCodeLevel, code, ''.join(format(x, '02X') for x in data) ), end='' )
+                    print( '_parsePayload(): ExCodeLevel - %02x, Code: %02x, Data: [%s]' % ( exCodeLevel, code, ''.join(format(x, '02X') for x in data) ), flush=True )
             else:
-                print( "_parsePayload(): ExCodeLevel - %02x, Code: %02x, Data: [%s]\n" % ( exCodeLevel, code, ''.join(format(x, '02X') for x in data) ), end='' )
+                print( '_parsePayload(): ExCodeLevel - %02x, Code: %02x, Data: [%s]' % ( exCodeLevel, code, ''.join(format(x, '02X') for x in data) ), flush=True )
         self.mutex.release()

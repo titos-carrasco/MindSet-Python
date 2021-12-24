@@ -1,28 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
 import numpy as np
-#import matplotlib
-#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import time
 import random
 import sys
 
-from rcr.mindset.MindSet import *
+from mindset.MindSet import *
 
-def main():
-    #sys.setcheckinterval( 100 )
+class TestGraphics():
+    def __init__( self ):
+        pass
 
-    # Bluetooth version
-    #headSet = MindSet( "/dev/rfcomm4" )
-
-    # RF version: 0x0000=connect any, 0xXXYY=connect with  0xXXYY
-    headSet = MindSet( "/dev/ttyUSB0", 0x0000 )
-
-    if( headSet.connect() ):
-        msd = MindSetData()
+    def run( self ):
+        #sys.setcheckinterval( 100 )
 
         attentionESense = [0]*10
         meditationESense = [0]*10
@@ -69,38 +61,41 @@ def main():
         plt.tick_params(axis='both', which='major', labelsize=8)
         liTheta, = plt.plot( theta, "b.-" )
 
-        while( True ):
-            try:
+        # Bluetooth version
+        #   headSet = MindSet( '/dev/rfcomm4' )
+        # RF version: 0x0000=connect any, 0xXXYY=connect with  0xXXY
+        #   headSet = MindSet( '/dev/ttyUSB0', 0x0000 )
+        msd = MindSetData()
+        headSet = MindSet( '/dev/rfcomm4' )
+        if( headSet.connect() ):
+            while( True ):
+                headSet.getMindSetData( msd )
+
                 attentionESense.pop( 0 )
                 meditationESense.pop( 0 )
-                rawWave16Bit.pop( 0 )
                 delta.pop(0)
                 theta.pop(0)
+                rawWave16Bit.pop( 0 )
 
-                headSet.getMindSetData( msd )
                 attentionESense.append( msd.attentionESense );
                 meditationESense.append( msd.meditationESense );
-                rawWave16Bit.append( msd.rawWave16Bit );
                 delta.append( msd.delta )
                 theta.append( msd.theta )
+                rawWave16Bit.append( msd.rawWave16Bit );
 
                 liAtt.set_ydata( attentionESense )
                 liMed.set_ydata( meditationESense )
-                liRaw.set_ydata( rawWave16Bit )
                 liDelta.set_ydata( delta )
-                #liDelta.axes.relim()
-                #liDelta.axes.autoscale_view()
                 liTheta.set_ydata( theta )
+                liRaw.set_ydata( rawWave16Bit )
 
                 time.sleep( 0.0001 )
                 fig.canvas.draw()
+                fig.canvas.flush_events()
                 time.sleep( 0.0001 )
 
-            except Exception as e:
-                print( e )
-                break
-        headSet.disconnect()
+            headSet.disconnect()
 
 
 if( __name__ == "__main__" ):
-    main()
+    TestGraphics().run()
