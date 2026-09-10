@@ -9,6 +9,8 @@ RF and Bluetooth HeadSets using NeuroSky MindSet Communications Protocol
 
 ![](images/TestMusic3.png)
 
+![](images/TestMusic4.png)
+
 ## Graphics Demo (TestGraphics.py)
 ![](images/TestGraphics.png)
 

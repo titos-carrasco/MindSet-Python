@@ -1,45 +1,95 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-import rtmidi
+import rtmidi  # pip install python-rtmidi
 import time
 
 from mindset.MindSet import *
 
-class TestMusica():
-    def __init__( self ):
-        pass
 
-    def run( self ):
-        midiOut = rtmidi.MidiOut()
-        midiOut.open_virtual_port( 'MindSet Port' )
-
+class TestMusica:
+    def __init__(self, port, midi_port):
         # Bluetooth version
         #   headSet = MindSet( '/dev/rfcomm4' )
         # RF version: 0x0000=connect any, 0xXXYY=connect with  0xXXY
         #   headSet = MindSet( '/dev/ttyUSB0', 0x0000 )
+        self.headSet = MindSet(port)
+
+        self.keys_chan1 = [None] * 4
+        self.keys_chan2 = [None] * 4
+
+        self.midiOut = rtmidi.MidiOut()
+        idx = [
+            i
+            for i, name in enumerate(self.midiOut.get_ports())
+            if name.startswith(midi_port)
+        ][0]
+        self.midiOut.open_port(idx)
+
+    def map(self, x, in_min, in_max, out_min, out_max):
+        return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
+
+    def play_note(self, channel, note, velocity):
+        if channel == 1:
+            keys = self.keys_chan1
+        elif channel == 2:
+            keys = self.keys_chan2
+        else:
+            return
+
+        # note off
+        k = keys.pop(0)
+        if k:
+            self.midiOut.send_message([0x80 + k[0] - 1, k[1], 0])
+
+        # C1 a C6
+        k = [channel, note]
+
+        # note on
+        keys.append(k)
+        self.midiOut.send_message([0x90 + channel - 1, note, velocity])
+
+        return note
+
+    def stop_notes(self, channel):
+        if channel == 1:
+            keys = self.keys_chan1
+        elif channel == 2:
+            keys = self.keys_chan2
+        else:
+            return
+
+        for k in keys:
+            if k:
+                self.midiOut.send_message([0x80 + k[0] - 1, k[1], 0])
+
+    def run(self):
         msd = MindSetData()
-        headSet = MindSet( '/dev/rfcomm4' )
-        if( headSet.connect() ):
-            nota1 = [ 0 ]*4
-            nota2 = [ 0 ]*4
+        if self.headSet.connect():
+            while True:
+                try:
+                    self.headSet.getMindSetData(msd)
 
-            while( True ):
-                headSet.getMindSetData( msd )
-                nota = msd.attentionESense
-                midiOut.send_message( [ 0x90, nota,32 ] )  # on channel 0, nota, velocidad
-                nota1.append( nota )
-                nota = nota1.pop(0)
-                midiOut.send_message( [ 0x80, nota, 8 ] )  # off channel 0, nota, velocidad
-                nota = msd.meditationESense
-                midiOut.send_message( [ 0x91, nota, 32 ] )  # on channel 1, nota, velocidad
-                nota2.append( nota )
-                nota = nota2.pop(0)
-                midiOut.send_message( [ 0x81, nota, 8 ] )  # off channel 1, nota, velocidad
+                    sense = msd.attentionESense
+                    nota = self.map(sense, 0, 100, 36, 96)
+                    print(
+                        f"{time.time():14.3f} AttentionESense : {sense:03d} - {nota:03d}"
+                    )
+                    self.play_note(1, nota, 127)
 
-                time.sleep( 2 )
-            headSet.disconnect()
+                    sense = msd.meditationESense
+                    nota = self.map(sense, 0, 100, 36, 96)
+                    print(
+                        f"{time.time():14.3f} MeditationESense: {sense:03d} - {nota:03d}"
+                    )
+                    self.play_note(2, nota, 127)
 
-if( __name__ == "__main__" ):
-    TestMusica().run()
+                    time.sleep(1)
+                except KeyboardInterrupt:
+                    break
+            self.headSet.disconnect()
+
+            self.stop_notes(1)
+            self.stop_notes(2)
+
+
+# -- show time
+app = TestMusica("COM21", "MindLink")
+app.run()
